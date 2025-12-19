@@ -1,5 +1,5 @@
 --====================================================
--- RED TEAM AUDIT V4 (FORCE LOOP + UI REFORÇADA)
+-- RED TEAM AUDIT V5 (ULTIMATE FORCE-LOOP)
 --====================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -11,31 +11,37 @@ local STATE = {
     SpeedValue = 100
 }
 
+-- FUNÇÃO PARA OBTER O HUMANÓIDE DE FORMA SEGURA
+local function getHumanoid()
+    local char = LocalPlayer.Character
+    if not char or not char.Parent then return end -- Garante que o char existe no workspace
+    return char:FindFirstChildOfClass("Humanoid")
+end
+
 -- 1. LOOP PRINCIPAL AGRESSIVO (FORÇA VALORES CONSTANTEMENTE)
 local loopConnection = RunService.Heartbeat:Connect(function()
     if not STATE.Running then return end
     
-    local char = LocalPlayer.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local hum = getHumanoid()
     
     if hum and STATE.SpeedEnabled then
-        -- Isso força a velocidade a cada frame, impedindo o servidor de sobrescrever
+        -- Força a velocidade a CADA FRAME. Isso deve vencer o anti-cheat de reset.
         hum.WalkSpeed = STATE.SpeedValue
     end
 end)
 
 -- 2. INTERFACE ROBUSTA
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AuditV4_Interface"
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.ResetOnSpawn = false -- Essencial para a GUI não sumir quando você morre
+local sg = Instance.new("ScreenGui")
+sg.Name = "AuditV5_Interface"
+sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
+sg.ResetOnSpawn = false -- Essencial para não sumir ao morrer
 
-local Frame = Instance.new("Frame", ScreenGui)
+local Frame = Instance.new("Frame", sg)
 Frame.Size = UDim2.new(0, 200, 0, 120)
 Frame.Position = UDim2.new(0.5, -100, 0.5, -60)
 Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 Frame.Active = true
-Frame.Draggable = true -- Permite arrastar no mobile
+Frame.Draggable = true
 
 -- BOTÃO SPEED
 local SpeedBtn = Instance.new("TextButton", Frame)
@@ -58,7 +64,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- BOTÃO FECHAR (POSIÇÃO ABSOLUTA E GARANTIDA)
+-- BOTÃO FECHAR
 local CloseBtn = Instance.new("TextButton", Frame)
 CloseBtn.Size = UDim2.new(1, 0, 0, 40)
 CloseBtn.Position = UDim2.new(0, 0, 1, -40)
@@ -68,8 +74,13 @@ CloseBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 CloseBtn.MouseButton1Click:Connect(function()
     STATE.Running = false
     STATE.SpeedEnabled = false
-    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if hum then hum.WalkSpeed = 16 end -- Reseta para a velocidade padrão
-    loopConnection:Disconnect() -- Desconecta o loop principal
-    ScreenGui:Destroy() -- Destrói a interface
+    local hum = getHumanoid()
+    if hum then hum.WalkSpeed = 16 end -- Reseta para o padrão
+    if loopConnection then loopConnection:Disconnect() end
+    sg:Destroy() 
+end)
+
+-- Conecta a atualização do personagem para garantir que sempre peguemos o Humanoid certo
+LocalPlayer.CharacterAdded:Connect(function()
+    -- Quando o char é adicionado, a função getHumanoid() automaticamente pega o novo
 end)
