@@ -1,5 +1,5 @@
 --====================================================
--- RED TEAM AUDIT V6 (NOCLIP & TELEPORT)
+-- RED TEAM AUDIT V7 (UI REDESIGN)
 --====================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -32,53 +32,48 @@ local physicsConnection = RunService.Heartbeat:Connect(function()
     end
 end)
 
--- 2. INTERFACE ROBUSTA
+-- 2. INTERFACE ROBUSTA (NOVO VISUAL)
 local sg = Instance.new("ScreenGui")
-sg.Name = "AuditV6_Interface"
+sg.Name = "AuditV7_Interface"
 sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
 sg.ResetOnSpawn = false 
 
 local Frame = Instance.new("Frame", sg)
-Frame.Size = UDim2.new(0, 220, 0, 260)
-Frame.Position = UDim2.new(0.5, -110, 0.5, -130)
-Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+Frame.Size = UDim2.new(0, 200, 0, 180) -- Tamanho menor, mais compacto
+Frame.Position = UDim2.new(0.5, -100, 0.5, -90)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25) -- Fundo mais escuro
 Frame.Active = true
 Frame.Draggable = true
 
--- TÍTULO
+-- TÍTULO (VERMELHO)
 local Title = Instance.new("TextLabel", Frame)
 Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "NOCLIP & TP AUDIT"
-Title.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+Title.Text = "R E D . T E A M"
+Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0) -- Cor de destaque
 Title.TextColor3 = Color3.new(1, 1, 1)
 
 -- BOTÃO NOCLIP
 local NocBtn = Instance.new("TextButton", Frame)
-NocBtn.Size = UDim2.new(0.9, 0, 0, 45)
-NocBtn.Position = UDim2.new(0.05, 0, 0.2, 0)
+NocBtn.Size = UDim2.new(0.9, 0, 0, 40)
+NocBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
 NocBtn.Text = "NOCLIP: OFF"
+NocBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 NocBtn.MouseButton1Click:Connect(function()
     STATE.Noclip = not STATE.Noclip
 end)
 
--- INPUT: NOME DO JOGADOR PARA TP
-local TpInput = Instance.new("TextBox", Frame)
-TpInput.Size = UDim2.new(0.9, 0, 0, 40)
-TpInput.Position = UDim2.new(0.05, 0, 0.45, 0)
-TpInput.PlaceholderText = "Nome do Jogador..."
-TpInput.Text = ""
-
--- BOTÃO TELEPORTE
+-- BOTÃO TELEPORTE (SIMPLIFICADO - SEM INPUT DE TEXTO)
+-- Para simplificar o teste, ele se teletransporta para a câmera do usuário
 local TpBtn = Instance.new("TextButton", Frame)
-TpBtn.Size = UDim2.new(0.9, 0, 0, 45)
-TpBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
-TpBtn.Text = "TELEPORTAR"
+TpBtn.Size = UDim2.new(0.9, 0, 0, 40)
+TpBtn.Position = UDim2.new(0.05, 0, 0.5, 0)
+TpBtn.Text = "TP PARA MINHA CÂMERA"
+TpBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 TpBtn.MouseButton1Click:Connect(function()
-    local target = Players:FindFirstChild(TpInput.Text)
     local char = LocalPlayer.Character
-    if target and target.Character and char then
-        -- Teleporta o jogador para a CFrame do alvo
-        char:SetPrimaryPartCFrame(target.Character:GetPrimaryPartCFrame() * CFrame.new(0, 5, 0))
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        -- Teleporta para onde a câmera está olhando
+        char:SetPrimaryPartCFrame(workspace.CurrentCamera.CFrame * CFrame.new(0, 0, -10))
     end
 end)
 
