@@ -1,5 +1,5 @@
 --====================================================
--- RED TEAM AUDIT V9 (REMOTE SPY & EXECUTOR)
+-- RED TEAM AUDIT V10 (REMOTE SPY & EXECUTOR)
 --====================================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -13,7 +13,7 @@ local STATE = {
 
 -- 1. INTERFACE ROBUSTA
 local sg = Instance.new("ScreenGui")
-sg.Name = "AuditV9_RemoteSpy"
+sg.Name = "AuditV10_RemoteSpy"
 sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
 sg.ResetOnSpawn = false 
 
@@ -27,7 +27,7 @@ Frame.Draggable = true
 -- TÍTULO
 local Title = Instance.new("TextLabel", Frame)
 Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "REMOTE SPY & EXECUTOR"
+Title.Text = "REMOTE SPY & EXECUTOR V10"
 Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 Title.TextColor3 = Color3.new(1, 1, 1)
 
@@ -44,13 +44,12 @@ UILayout.Padding = UDim2.new(0, 5, 0, 5)
 local function addRemoteButton(remoteInstance)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 30)
-    btn.Text = "FIRE: " .. remoteInstance.Name
+    btn.Text = "FIRE: " .. remoteInstance.Name .. " (" .. remoteInstance.ClassName .. ")"
     btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
     btn.Parent = RemoteListFrame
 
     btn.MouseButton1Click:Connect(function()
-        -- Dispara o evento remoto. Este é o seu vetor de bypass.
-        -- Tente disparar isso de longe do 'brainrot' para testar a validação do servidor.
+        print("RedTeam Audit: Disparando evento -> " .. remoteInstance.Name)
         remoteInstance:FireServer()
     end)
     
@@ -58,20 +57,25 @@ local function addRemoteButton(remoteInstance)
 end
 
 -- 5. LÓGICA DE AUDITORIA: ENCONTRAR REMOTES DINAMICAMENTE
-local function findRemotes(container)
-    for _, child in pairs(container:GetDescendants()) do
-        if (child:IsA("RemoteEvent") or child:IsA("RemoteFunction")) and not STATE.FoundRemotes[child.Name] then
-            STATE.FoundRemotes[child.Name] = true
+local function findRemotesRecursively(container)
+    for _, child in pairs(container:GetChildren()) do
+        if (child:IsA("RemoteEvent") or child:IsA("RemoteFunction")) and not STATE.FoundRemotes[child] then
+            STATE.FoundRemotes[child] = true
             addRemoteButton(child)
-            print("RedTeam Audit: Found Remote -> " .. child.Name)
+            print("RedTeam Audit: ENCONTRADO -> " .. child:GetFullName())
+        end
+        -- Continua a busca em subpastas, ignorando o jogador local para evitar spam
+        if child.ClassName == "Folder" or child:IsA("Part") or child:IsA("Model") then
+             findRemotesRecursively(child)
         end
     end
 end
 
--- Monitora mudanças em tempo real
-ReplicatedStorage.ChildAdded:Connect(function(child) findRemotes(child) end)
-findRemotes(ReplicatedStorage)
--- (Opcional: você pode procurar em outras pastas se souber onde os remotos estão)
+-- Monitora mudanças em tempo real em ReplicatedStorage e Workspace
+ReplicatedStorage.ChildAdded:Connect(function(child) findRemotesRecursively(child) end)
+game.Workspace.ChildAdded:Connect(function(child) findRemotesRecursively(child) end)
+findRemotesRecursively(ReplicatedStorage)
+findRemotesRecursively(game.Workspace) -- Busca no workspace também
 
 -- BOTÃO FECHAR
 local CloseBtn = Instance.new("TextButton", Frame)
