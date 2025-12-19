@@ -1,5 +1,5 @@
 --====================================================
--- RED TEAM AUDIT V7 (UI REDESIGN)
+-- RED TEAM AUDIT V8 (PLAYER LIST & NOCLIP)
 --====================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,7 +8,6 @@ local LocalPlayer = Players.LocalPlayer
 local STATE = {
     Running = true,
     Noclip = false,
-    TargetPlayer = ""
 }
 
 -- FUNÇÃO PARA OBTER O HUMANÓIDE DE FORMA SEGURA
@@ -32,49 +31,86 @@ local physicsConnection = RunService.Heartbeat:Connect(function()
     end
 end)
 
--- 2. INTERFACE ROBUSTA (NOVO VISUAL)
+-- 2. INTERFACE ROBUSTA
 local sg = Instance.new("ScreenGui")
-sg.Name = "AuditV7_Interface"
+sg.Name = "AuditV8_Interface"
 sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
 sg.ResetOnSpawn = false 
 
 local Frame = Instance.new("Frame", sg)
-Frame.Size = UDim2.new(0, 200, 0, 180) -- Tamanho menor, mais compacto
-Frame.Position = UDim2.new(0.5, -100, 0.5, -90)
-Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25) -- Fundo mais escuro
+Frame.Size = UDim2.new(0, 200, 0, 300) -- Frame maior para caber a lista
+Frame.Position = UDim2.new(0.5, -100, 0.5, -150)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 Frame.Active = true
 Frame.Draggable = true
 
--- TÍTULO (VERMELHO)
+-- TÍTULO
 local Title = Instance.new("TextLabel", Frame)
 Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "R E D . T E A M"
-Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0) -- Cor de destaque
+Title.Text = "R E D . T E A M . A U D I T"
+Title.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 Title.TextColor3 = Color3.new(1, 1, 1)
+
+-- FRAME DA LISTA DE JOGADORES
+local PlayerListFrame = Instance.new("ScrollingFrame", Frame)
+PlayerListFrame.Size = UDim2.new(1, 0, 0.6, 0) -- Ocupa 60% do frame principal
+PlayerListFrame.Position = UDim2.new(0, 0, 0.15, 0)
+PlayerListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- Ajustado dinamicamente
+
+local UILayout = Instance.new("UIListLayout", PlayerListFrame)
+UILayout.FillDirection = Enum.FillDirection.Vertical
+UILayout.Padding = UDim2.new(0, 5, 0, 5)
+UILayout.SortOrder = Enum.SortOrder.Name
+
+-- 3. FUNÇÃO DE TELEPORTE (Executada pelo botão na lista)
+local function teleportToPlayer(targetPlayer)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") and targetPlayer and targetPlayer.Character then
+        char:SetPrimaryPartCFrame(targetPlayer.Character:GetPrimaryPartCFrame() * CFrame.new(0, 5, 0))
+    end
+end
+
+-- 4. FUNÇÃO PARA ATUALIZAR A LISTA DE JOGADORES
+local function updatePlayerList()
+    -- Limpa a lista existente
+    for _, item in pairs(PlayerListFrame:GetChildren()) do
+        if item:IsA("TextButton") then
+            item:Destroy()
+        end
+    end
+
+    -- Adiciona novos jogadores
+    for _, player in pairs(Players:GetPlayers()) do
+        local PlayerButton = Instance.new("TextButton")
+        PlayerButton.Size = UDim2.new(1, 0, 0, 30)
+        PlayerButton.Text = player.Name
+        PlayerButton.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+        PlayerButton.Parent = PlayerListFrame
+
+        PlayerButton.MouseButton1Click:Connect(function()
+            teleportToPlayer(player)
+        end)
+    end
+    -- Ajusta o tamanho da área de rolagem
+    PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, UILayout.AbsoluteContentSize.Y)
+end
+
+-- Atualiza a lista quando um jogador entra/sai
+Players.PlayerAdded:Connect(updatePlayerList)
+Players.PlayerRemoving:Connect(updatePlayerList)
+-- Atualiza a lista na inicialização
+updatePlayerList()
+
 
 -- BOTÃO NOCLIP
 local NocBtn = Instance.new("TextButton", Frame)
 NocBtn.Size = UDim2.new(0.9, 0, 0, 40)
-NocBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
+NocBtn.Position = UDim2.new(0.05, 0, 0.78, 0)
 NocBtn.Text = "NOCLIP: OFF"
 NocBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 NocBtn.MouseButton1Click:Connect(function()
     STATE.Noclip = not STATE.Noclip
-end)
-
--- BOTÃO TELEPORTE (SIMPLIFICADO - SEM INPUT DE TEXTO)
--- Para simplificar o teste, ele se teletransporta para a câmera do usuário
-local TpBtn = Instance.new("TextButton", Frame)
-TpBtn.Size = UDim2.new(0.9, 0, 0, 40)
-TpBtn.Position = UDim2.new(0.05, 0, 0.5, 0)
-TpBtn.Text = "TP PARA MINHA CÂMERA"
-TpBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-TpBtn.MouseButton1Click:Connect(function()
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        -- Teleporta para onde a câmera está olhando
-        char:SetPrimaryPartCFrame(workspace.CurrentCamera.CFrame * CFrame.new(0, 0, -10))
-    end
 end)
 
 -- FEEDBACK VISUAL EM TEMPO REAL
