@@ -1,107 +1,75 @@
 --====================================================
--- RED TEAM AUDIT V2 (FIXED SPEED & CLOSE)
+-- RED TEAM AUDIT V4 (FORCE LOOP + UI REFORÇADA)
 --====================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 local STATE = {
-    Noclip = false,
+    Running = true,
     SpeedEnabled = false,
-    SpeedValue = 100,
-    Running = true
+    SpeedValue = 100
 }
 
--- 1. LOOP DE FÍSICA (FORÇA SPEED E NOCLIP)
-local physicsConnection
-physicsConnection = RunService.Stepped:Connect(function()
-    if not STATE.Running then 
-        physicsConnection:Disconnect()
-        return 
-    end
+-- 1. LOOP PRINCIPAL AGRESSIVO (FORÇA VALORES CONSTANTEMENTE)
+local loopConnection = RunService.Heartbeat:Connect(function()
+    if not STATE.Running then return end
     
     local char = LocalPlayer.Character
-    if char then
-        -- Forçar Speed (Bypassa resets simples do servidor)
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum and STATE.SpeedEnabled then
-            hum.WalkSpeed = STATE.SpeedValue
-        end
-        
-        -- Noclip
-        if STATE.Noclip then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
-            end
-        end
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    
+    if hum and STATE.SpeedEnabled then
+        -- Isso força a velocidade a cada frame, impedindo o servidor de sobrescrever
+        hum.WalkSpeed = STATE.SpeedValue
     end
 end)
 
--- 2. INTERFACE
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "Audit_v2_" .. math.random(100)
+-- 2. INTERFACE ROBUSTA
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AuditV4_Interface"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false -- Essencial para a GUI não sumir quando você morre
 
-local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 220, 0, 280)
-Main.Position = UDim2.new(0.5, -110, 0.5, -140)
-Main.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-Main.Active = true
-Main.Draggable = true
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 200, 0, 120)
+Frame.Position = UDim2.new(0.5, -100, 0.5, -60)
+Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+Frame.Active = true
+Frame.Draggable = true -- Permite arrastar no mobile
 
--- BOTÃO SPEED (ON/OFF)
-local SpeedBtn = Instance.new("TextButton", Main)
-SpeedBtn.Size = UDim2.new(0.9, 0, 0, 45)
+-- BOTÃO SPEED
+local SpeedBtn = Instance.new("TextButton", Frame)
+SpeedBtn.Size = UDim2.new(0.9, 0, 0, 40)
 SpeedBtn.Position = UDim2.new(0.05, 0, 0.1, 0)
-SpeedBtn.Text = "SPEED: OFF"
-SpeedBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
-
+SpeedBtn.Text = "SPEED: OFF (100)"
+SpeedBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 SpeedBtn.MouseButton1Click:Connect(function()
     STATE.SpeedEnabled = not STATE.SpeedEnabled
-    SpeedBtn.Text = STATE.SpeedEnabled and "SPEED: ON (100)" or "SPEED: OFF"
-    SpeedBtn.BackgroundColor3 = STATE.SpeedEnabled and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(60, 60, 65)
 end)
 
--- BOTÃO NOCLIP
-local NocBtn = Instance.new("TextButton", Main)
-NocBtn.Size = UDim2.new(0.9, 0, 0, 45)
-NocBtn.Position = UDim2.new(0.05, 0, 0.3, 0)
-NocBtn.Text = "NOCLIP: OFF"
-NocBtn.MouseButton1Click:Connect(function()
-    STATE.Noclip = not STATE.Noclip
-    NocBtn.Text = STATE.Noclip and "NOCLIP: ON" or "NOCLIP: OFF"
-    NocBtn.BackgroundColor3 = STATE.Noclip and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(60, 60, 65)
-end)
-
--- TP INPUT E BOTÃO
-local TargetInput = Instance.new("TextBox", Main)
-TargetInput.Size = UDim2.new(0.9, 0, 0, 40)
-TargetInput.Position = UDim2.new(0.05, 0, 0.5, 0)
-TargetInput.PlaceholderText = "Nome do Jogador..."
-
-local TpBtn = Instance.new("TextButton", Main)
-TpBtn.Size = UDim2.new(0.9, 0, 0, 45)
-TpBtn.Position = UDim2.new(0.05, 0, 0.68, 0)
-TpBtn.Text = "TELEPORTAR"
-TpBtn.MouseButton1Click:Connect(function()
-    local target = Players:FindFirstChild(TargetInput.Text)
-    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character:SetPrimaryPartCFrame(target.Character.HumanoidRootPart.CFrame)
+-- FEEDBACK VISUAL EM TEMPO REAL
+RunService.RenderStepped:Connect(function()
+    if STATE.SpeedEnabled then
+        SpeedBtn.Text = "SPEED: ON (100)"
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    else
+        SpeedBtn.Text = "SPEED: OFF (100)"
+        SpeedBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
     end
 end)
 
--- BOTÃO FECHAR (LIMPA TUDO)
-local Close = Instance.new("TextButton", Main)
-Close.Size = UDim2.new(1, 0, 0, 35)
-Close.Position = UDim2.new(0, 0, 1, -35)
-Close.Text = "FECHAR E PARAR"
-Close.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+-- BOTÃO FECHAR (POSIÇÃO ABSOLUTA E GARANTIDA)
+local CloseBtn = Instance.new("TextButton", Frame)
+CloseBtn.Size = UDim2.new(1, 0, 0, 40)
+CloseBtn.Position = UDim2.new(0, 0, 1, -40)
+CloseBtn.Text = "FECHAR E LIMPAR AUDIT"
+CloseBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 
-Close.MouseButton1Click:Connect(function()
+CloseBtn.MouseButton1Click:Connect(function()
     STATE.Running = false
     STATE.SpeedEnabled = false
-    STATE.Noclip = false
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = 16 -- Reset ao fechar
-    end
-    ScreenGui:Destroy()
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if hum then hum.WalkSpeed = 16 end -- Reseta para a velocidade padrão
+    loopConnection:Disconnect() -- Desconecta o loop principal
+    ScreenGui:Destroy() -- Destrói a interface
 end)
