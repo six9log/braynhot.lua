@@ -1,92 +1,107 @@
 --====================================================
--- RED TEAM AUDIT - TOOLKIT DE TESTE (DELTA)
+-- RED TEAM AUDIT V2 (FIXED SPEED & CLOSE)
 --====================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-local UI_STATE = {
+local STATE = {
     Noclip = false,
-    Speed = 16,
-    TargetPlayer = ""
+    SpeedEnabled = false,
+    SpeedValue = 100,
+    Running = true
 }
 
--- 1. LÓGICA DE NOCLIP (FÍSICA)
-RunService.Stepped:Connect(function()
-    if UI_STATE.Noclip and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
+-- 1. LOOP DE FÍSICA (FORÇA SPEED E NOCLIP)
+local physicsConnection
+physicsConnection = RunService.Stepped:Connect(function()
+    if not STATE.Running then 
+        physicsConnection:Disconnect()
+        return 
+    end
+    
+    local char = LocalPlayer.Character
+    if char then
+        -- Forçar Speed (Bypassa resets simples do servidor)
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum and STATE.SpeedEnabled then
+            hum.WalkSpeed = STATE.SpeedValue
+        end
+        
+        -- Noclip
+        if STATE.Noclip then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
             end
         end
     end
 end)
 
--- 2. INTERFACE GRÁFICA
+-- 2. INTERFACE
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "RedTeam_Diagnostic"
+ScreenGui.Name = "Audit_v2_" .. math.random(100)
 
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 250, 0, 300)
-MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-MainFrame.Active = true
-MainFrame.Draggable = true -- Facilita o uso no mobile/Delta
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 220, 0, 280)
+Main.Position = UDim2.new(0.5, -110, 0.5, -140)
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+Main.Active = true
+Main.Draggable = true
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "RED TEAM - AUDIT"
-Title.TextColor3 = Color3.new(1, 0, 0)
-Title.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+-- BOTÃO SPEED (ON/OFF)
+local SpeedBtn = Instance.new("TextButton", Main)
+SpeedBtn.Size = UDim2.new(0.9, 0, 0, 45)
+SpeedBtn.Position = UDim2.new(0.05, 0, 0.1, 0)
+SpeedBtn.Text = "SPEED: OFF"
+SpeedBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
 
--- BOTÃO: VELOCIDADE (WALKSPEED)
-local SpeedBtn = Instance.new("TextButton", MainFrame)
-SpeedBtn.Size = UDim2.new(0.9, 0, 0, 40)
-SpeedBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
-SpeedBtn.Text = "TESTAR SPEED (100)"
-SpeedBtn.Callback = function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = 100
-    end
-end
-
--- BOTÃO: NOCLIP
-local NoclipBtn = Instance.new("TextButton", MainFrame)
-NoclipBtn.Size = UDim2.new(0.9, 0, 0, 40)
-NoclipBtn.Position = UDim2.new(0.05, 0, 0.32, 0)
-NoclipBtn.Text = "NOCLIP: OFF"
-NoclipBtn.MouseButton1Click:Connect(function()
-    UI_STATE.Noclip = not UI_STATE.Noclip
-    NoclipBtn.Text = UI_STATE.Noclip and "NOCLIP: ON" or "NOCLIP: OFF"
-    NoclipBtn.BackgroundColor3 = UI_STATE.Noclip and Color3.new(0, 0.5, 0) or Color3.new(0.5, 0, 0)
+SpeedBtn.MouseButton1Click:Connect(function()
+    STATE.SpeedEnabled = not STATE.SpeedEnabled
+    SpeedBtn.Text = STATE.SpeedEnabled and "SPEED: ON (100)" or "SPEED: OFF"
+    SpeedBtn.BackgroundColor3 = STATE.SpeedEnabled and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(60, 60, 65)
 end)
 
--- INPUT: NOME DO JOGADOR PARA TP
-local TpInput = Instance.new("TextBox", MainFrame)
-TpInput.Size = UDim2.new(0.9, 0, 0, 40)
-TpInput.Position = UDim2.new(0.05, 0, 0.50, 0)
-TpInput.PlaceholderText = "Nome do Jogador..."
-TpInput.Text = ""
+-- BOTÃO NOCLIP
+local NocBtn = Instance.new("TextButton", Main)
+NocBtn.Size = UDim2.new(0.9, 0, 0, 45)
+NocBtn.Position = UDim2.new(0.05, 0, 0.3, 0)
+NocBtn.Text = "NOCLIP: OFF"
+NocBtn.MouseButton1Click:Connect(function()
+    STATE.Noclip = not STATE.Noclip
+    NocBtn.Text = STATE.Noclip and "NOCLIP: ON" or "NOCLIP: OFF"
+    NocBtn.BackgroundColor3 = STATE.Noclip and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(60, 60, 65)
+end)
 
--- BOTÃO: TELEPORTE
-local TpBtn = Instance.new("TextButton", MainFrame)
-TpBtn.Size = UDim2.new(0.9, 0, 0, 40)
-TpBtn.Position = UDim2.new(0.05, 0, 0.67, 0)
+-- TP INPUT E BOTÃO
+local TargetInput = Instance.new("TextBox", Main)
+TargetInput.Size = UDim2.new(0.9, 0, 0, 40)
+TargetInput.Position = UDim2.new(0.05, 0, 0.5, 0)
+TargetInput.PlaceholderText = "Nome do Jogador..."
+
+local TpBtn = Instance.new("TextButton", Main)
+TpBtn.Size = UDim2.new(0.9, 0, 0, 45)
+TpBtn.Position = UDim2.new(0.05, 0, 0.68, 0)
 TpBtn.Text = "TELEPORTAR"
 TpBtn.MouseButton1Click:Connect(function()
-    local target = Players:FindFirstChild(TpInput.Text)
+    local target = Players:FindFirstChild(TargetInput.Text)
     if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character:SetPrimaryPartCFrame(target.Character.HumanoidRootPart.CFrame)
     end
 end)
 
--- BOTÃO: FECHAR E LIMPAR
-local CloseBtn = Instance.new("TextButton", MainFrame)
-CloseBtn.Size = UDim2.new(1, 0, 0, 30)
-CloseBtn.Position = UDim2.new(0, 0, 1, -30)
-CloseBtn.Text = "FECHAR SCRIPT"
-CloseBtn.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-CloseBtn.MouseButton1Click:Connect(function()
-    UI_STATE.Noclip = false
+-- BOTÃO FECHAR (LIMPA TUDO)
+local Close = Instance.new("TextButton", Main)
+Close.Size = UDim2.new(1, 0, 0, 35)
+Close.Position = UDim2.new(0, 0, 1, -35)
+Close.Text = "FECHAR E PARAR"
+Close.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+
+Close.MouseButton1Click:Connect(function()
+    STATE.Running = false
+    STATE.SpeedEnabled = false
+    STATE.Noclip = false
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = 16 -- Reset ao fechar
+    end
     ScreenGui:Destroy()
 end)
